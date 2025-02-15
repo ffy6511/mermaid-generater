@@ -27,7 +27,28 @@ export function HistoryProvider({ children }: { children: React.ReactNode }) {
   const [historyList, setHistoryList] = useState<HistoryItem[]>([]);
 
   useEffect(() => {
-    loadHistory().then(items => setHistoryList(items));
+    // 初始化数据库
+    const initDB = async () => {
+      try {
+        const db = await openDB('mermaid-generator', 1, {
+          upgrade(db) {
+            // 创建对象存储空间
+            if (!db.objectStoreNames.contains('history')) {
+              db.createObjectStore('history', { keyPath: 'id' });
+            }
+          },
+        });
+        
+        // 确保数据库初始化完成后再加载数据
+        const items = await db.getAll('history');
+        const sortedItems = items.sort((a, b) => b.timestamp - a.timestamp);
+        setHistoryList(sortedItems);
+      } catch (error) {
+        console.error('Database initialization error:', error);
+      }
+    };
+
+    initDB();
   }, []);
 
   useEffect(() => {
@@ -58,11 +79,16 @@ export function HistoryProvider({ children }: { children: React.ReactNode }) {
   };
 
   const loadHistory = async () => {
-    const db = await openDB('mermaid-generator', 1);
-    const items = await db.getAll('history');
-    const sortedItems = items.sort((a, b) => b.timestamp - a.timestamp);
-    setHistoryList(sortedItems);
-    return sortedItems;
+    try {
+      const db = await openDB('mermaid-generator', 1);
+      const items = await db.getAll('history');
+      const sortedItems = items.sort((a, b) => b.timestamp - a.timestamp);
+      setHistoryList(sortedItems);
+      return sortedItems;
+    } catch (error) {
+      console.error('Load history error:', error);
+      return [];
+    }
   };
 
   const deleteHistory = async (id: string) => {
