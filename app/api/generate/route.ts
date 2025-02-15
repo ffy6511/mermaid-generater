@@ -1,4 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { RequestInit } from 'node-fetch';
+
+declare module 'node-fetch' {
+  interface RequestInit {
+    agent?: any;
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,18 +18,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 中间件会处理API密钥和请求转发
-    const response = await fetch(request.url, {
+    const apiKey = process.env.ZCHAT_API_KEY ;
+
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: 'ZChat API key not configured' },
+        { status: 500 }
+      );
+    }
+
+    const apiUrl = 'https://api.zchat.tech/v1/chat/completions';
+
+    const response = await fetch(apiUrl, {
       method: 'POST',
-      headers: request.headers,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
       body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `你是一个专业的图表生成助手。请将以下文本转换为Mermaid图表代码，根据内容选择合适的图表类型（流程图、时序图、类图等）。只返回Mermaid代码，不要包含其他解释性文字：\n\n${text}`
-          }]
-        }]
+        model: 'gpt-3.5-turbo',
+        messages: [
+          {
+            role: 'system',
+            content: '你是一个专业的图表生成助手。你的任务是将用户输入的文本转换为Mermaid图表代码。\n\n规则：\n1. 根据内容选择最合适的图表类型（流程图、时序图、类图等）\n2. 使用正确的Mermaid语法\n3. 只返回Mermaid代码，不要包含任何解释性文字\n4. 确保生成的代码可以被Mermaid正确渲染\n\n示例输出格式：\ngraph TD\n    A[开始] --> B[处理]\n    B --> C[结束], 注意不要包含mermaid这个单词.'
+          },
+          {
+            role: 'user',
+            content: text
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 2000
       }),
     });
+
 
     if (!response.ok) {
       const error = await response.text();
@@ -33,7 +62,7 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json();
-    const mermaidCode = data.candidates[0].content.parts[0].text;
+    const mermaidCode = data.choices[0].message.content;
 
     return NextResponse.json({ mermaidCode });
 

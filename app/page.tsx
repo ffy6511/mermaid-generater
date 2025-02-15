@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
-import { Moon, Sun, Save, Loader2, ChevronRight, ChevronDown, FileText } from "lucide-react";
+import { Moon, Sun, Save, Loader2, ChevronRight, ChevronDown, FileText, Copy, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import mermaid from "mermaid";
 
 interface HistoryItem {
   id: string;
@@ -20,7 +21,53 @@ export default function Home() {
   const [isHistoryOpen, setIsHistoryOpen] = useState(true);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [mermaidCode, setMermaidCode] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editableMermaidCode, setEditableMermaidCode] = useState("");
   const { theme, setTheme } = useTheme();
+
+  useEffect(() => {
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: theme === 'dark' ? 'dark' : 'default',
+      securityLevel: 'loose',
+    });
+  }, [theme]);
+
+  useEffect(() => {
+    if (mermaidCode) {
+      setEditableMermaidCode(mermaidCode);
+      renderMermaidDiagram();
+    }
+  }, [mermaidCode]);
+
+  useEffect(() => {
+    if (isEditing) {
+      renderMermaidDiagram();
+    }
+  }, [editableMermaidCode]);
+
+  const renderMermaidDiagram = async () => {
+    try {
+      const container = document.getElementById('mermaid-diagram');
+      if (container) {
+        container.innerHTML = '';
+        await mermaid.render('mermaid-svg', isEditing ? editableMermaidCode : mermaidCode)
+          .then(({ svg }) => {
+            container.innerHTML = svg;
+          });
+      }
+    } catch (error) {
+      console.error('Mermaid rendering error:', error);
+    }
+  };
+
+  const handleCopyCode = () => {
+    navigator.clipboard.writeText(mermaidCode);
+  };
+
+  const handleEditToggle = () => {
+    setIsEditing(!isEditing);
+  };
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
@@ -139,14 +186,44 @@ export default function Home() {
           {/* 预览区域 */}
           <Card className="p-4">
             <h2 className="text-xl font-semibold mb-4">预览</h2>
-            <div className="min-h-[300px] flex items-center justify-center border rounded-md p-4 overflow-auto">
-              {mermaidCode ? (
-                <pre className="text-sm whitespace-pre-wrap break-all">
-                  {mermaidCode}
-                </pre>
-              ) : (
-                <p className="text-muted-foreground">图表预览区域</p>
-              )}
+            <div className="space-y-4">
+              {/* 代码块区域 */}
+              <div className="relative">
+                <div className="absolute right-2 top-2 flex gap-2">
+                  <Button variant="ghost" size="icon" onClick={handleCopyCode}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleEditToggle}
+                    className={cn(isEditing && "bg-accent")}
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                {isEditing ? (
+                  <Textarea
+                    value={editableMermaidCode}
+                    onChange={(e) => setEditableMermaidCode(e.target.value)}
+                    className="min-h-[200px] font-mono text-sm"
+                  />
+                ) : (
+                  <pre className="min-h-[200px] p-4 bg-muted font-mono text-sm rounded-md overflow-auto">
+                    {mermaidCode || "暂无图表代码"}
+                  </pre>
+                )}
+              </div>
+              {/* Mermaid图表渲染区域 */}
+              <div className="min-h-[300px] border rounded-md p-4 overflow-auto">
+                {mermaidCode ? (
+                  <div id="mermaid-diagram" className="flex justify-center">
+                    {/* Mermaid图表将在这里渲染 */}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-center">图表渲染区域</p>
+                )}
+              </div>
             </div>
           </Card>
         </div>
