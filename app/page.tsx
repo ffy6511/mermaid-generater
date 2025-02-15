@@ -1,29 +1,32 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useTheme } from "next-themes";
-import { Moon, Sun, Save, Loader2, ChevronRight, ChevronDown, FileText, Copy, Edit2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Card } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
-import mermaid from "mermaid";
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Card } from '@/components/ui/card';
+import { Loader2, Save, Sun, Moon } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import mermaid from 'mermaid';
+import { HistoryPanel } from '@/components/history-panel';
+import { PreviewPanel } from '@/components/preview-panel';
+import { openDB } from 'idb';
+import { useHistory } from '@/contexts/history-context';
 
-interface HistoryItem {
-  id: string;
-  content: string;
-  timestamp: number;
-}
+
 
 export default function Home() {
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(true);
-  const [history, setHistory] = useState<HistoryItem[]>([]);
   const [mermaidCode, setMermaidCode] = useState("");
-  const [isEditing, setIsEditing] = useState(false);
-  const [editableMermaidCode, setEditableMermaidCode] = useState("");
   const { theme, setTheme } = useTheme();
+  const { addHistory, selectedHistory } = useHistory();
+
+  useEffect(() => {
+    if (selectedHistory) {
+      setInputText(selectedHistory.content);
+      setMermaidCode(selectedHistory.mermaidCode);
+    }
+  }, [selectedHistory]);
 
   useEffect(() => {
     mermaid.initialize({
@@ -35,23 +38,16 @@ export default function Home() {
 
   useEffect(() => {
     if (mermaidCode) {
-      setEditableMermaidCode(mermaidCode);
       renderMermaidDiagram();
     }
   }, [mermaidCode]);
-
-  useEffect(() => {
-    if (isEditing) {
-      renderMermaidDiagram();
-    }
-  }, [editableMermaidCode]);
 
   const renderMermaidDiagram = async () => {
     try {
       const container = document.getElementById('mermaid-diagram');
       if (container) {
         container.innerHTML = '';
-        await mermaid.render('mermaid-svg', isEditing ? editableMermaidCode : mermaidCode)
+        await mermaid.render('mermaid-svg', mermaidCode)
           .then(({ svg }) => {
             container.innerHTML = svg;
           });
@@ -61,13 +57,7 @@ export default function Home() {
     }
   };
 
-  const handleCopyCode = () => {
-    navigator.clipboard.writeText(mermaidCode);
-  };
 
-  const handleEditToggle = () => {
-    setIsEditing(!isEditing);
-  };
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
@@ -91,15 +81,15 @@ export default function Home() {
       }
 
       const data = await response.json();
-      setMermaidCode(data.mermaidCode);
+      // 处理返回的 mermaid 代码，只移除mermaid标记
+      const processedCode = data.mermaidCode
+        .replace(/^```mermaid\n/, '')  // 移除开头的 ```mermaid
+        .replace(/```$/, '');          // 移除结尾的 ```
+      setMermaidCode(processedCode);
+
 
       // 保存到历史记录
-      const newItem: HistoryItem = {
-        id: Date.now().toString(),
-        content: inputText,
-        timestamp: Date.now(),
-      };
-      setHistory((prev) => [newItem, ...prev]);
+      await addHistory(inputText, processedCode);
     } catch (error) {
       console.error("Error:", error);
     } finally {
@@ -119,41 +109,7 @@ export default function Home() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-[250px,1fr,1fr]">
-          {/* 历史记录面板 */}
-          <Card className="p-4 h-[calc(100vh-12rem)] overflow-auto">
-            <div
-              className="flex items-center justify-between cursor-pointer mb-4"
-              onClick={() => setIsHistoryOpen(!isHistoryOpen)}
-            >
-              <h2 className="text-xl font-semibold">历史记录</h2>
-              {isHistoryOpen ? (
-                <ChevronDown className="h-5 w-5" />
-              ) : (
-                <ChevronRight className="h-5 w-5" />
-              )}
-            </div>
-            {isHistoryOpen && (
-              <div className="space-y-2">
-                {history.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent cursor-pointer"
-                    onClick={() => setInputText(item.content)}
-                  >
-                    <FileText className="h-4 w-4" />
-                    <span className="text-sm truncate">
-                      {new Date(item.timestamp).toLocaleString()}
-                    </span>
-                  </div>
-                ))}
-                {history.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center">
-                    暂无历史记录
-                  </p>
-                )}
-              </div>
-            )}
-          </Card>
+          <HistoryPanel onSelectHistory={setInputText} />
 
           {/* 输入区域 */}
           <Card className="p-4">
@@ -183,49 +139,11 @@ export default function Home() {
             </Button>
           </Card>
 
-          {/* 预览区域 */}
-          <Card className="p-4">
-            <h2 className="text-xl font-semibold mb-4">预览</h2>
-            <div className="space-y-4">
-              {/* 代码块区域 */}
-              <div className="relative">
-                <div className="absolute right-2 top-2 flex gap-2">
-                  <Button variant="ghost" size="icon" onClick={handleCopyCode}>
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleEditToggle}
-                    className={cn(isEditing && "bg-accent")}
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </Button>
-                </div>
-                {isEditing ? (
-                  <Textarea
-                    value={editableMermaidCode}
-                    onChange={(e) => setEditableMermaidCode(e.target.value)}
-                    className="min-h-[200px] font-mono text-sm"
-                  />
-                ) : (
-                  <pre className="min-h-[200px] p-4 bg-muted font-mono text-sm rounded-md overflow-auto">
-                    {mermaidCode || "暂无图表代码"}
-                  </pre>
-                )}
-              </div>
-              {/* Mermaid图表渲染区域 */}
-              <div className="min-h-[300px] border rounded-md p-4 overflow-auto">
-                {mermaidCode ? (
-                  <div id="mermaid-diagram" className="flex justify-center">
-                    {/* Mermaid图表将在这里渲染 */}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground text-center">图表渲染区域</p>
-                )}
-              </div>
-            </div>
-          </Card>
+          <PreviewPanel
+            mermaidCode={mermaidCode}
+            onEditCode={setMermaidCode}
+            isLoading={isLoading}
+          />
         </div>
       </div>
     </main>

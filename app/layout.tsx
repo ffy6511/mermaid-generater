@@ -1,5 +1,6 @@
 import "@/app/globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { HistoryProvider } from "@/contexts/history-context";
 
 export const metadata = {
   title: "Mermaid Generator",
@@ -20,7 +21,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <HistoryProvider>
+            {children}
+          </HistoryProvider>
         </ThemeProvider>
       </body>
     </html>
