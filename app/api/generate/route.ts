@@ -1,18 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
-
 export async function POST(request: NextRequest) {
   try {
     const { text } = await request.json();
-    const apiKey = process.env.DEEPSEEK_API_KEY;
-
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: 'DeepSeek API key not configured' },
-        { status: 500 }
-      );
-    }
 
     if (!text) {
       return NextResponse.json(
@@ -21,25 +11,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const response = await fetch(DEEPSEEK_API_URL, {
+    // 中间件会处理API密钥和请求转发
+    const response = await fetch(request.url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
+      headers: request.headers,
       body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: [
-          {
-            role: 'system',
-            content: '你是一个专业的图表生成助手，你需要将用户输入的文本转换为Mermaid图表代码。根据内容选择合适的图表类型（流程图、时序图、类图等）。输出时，只返回Mermaid代码，不要包含其他解释性文字。'
-          },
-          {
-            role: 'user',
-            content: text
-          }
-        ],
-        temperature: 0.7,
+        contents: [{
+          parts: [{
+            text: `你是一个专业的图表生成助手。请将以下文本转换为Mermaid图表代码，根据内容选择合适的图表类型（流程图、时序图、类图等）。只返回Mermaid代码，不要包含其他解释性文字：\n\n${text}`
+          }]
+        }]
       }),
     });
 
@@ -52,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json();
-    const mermaidCode = data.choices[0].message.content;
+    const mermaidCode = data.candidates[0].content.parts[0].text;
 
     return NextResponse.json({ mermaidCode });
 
