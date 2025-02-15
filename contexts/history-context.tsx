@@ -15,15 +15,22 @@ interface HistoryContextType {
   setSelectedHistory: (history: HistoryItem | null) => void;
   addHistory: (content: string, mermaidCode: string) => Promise<void>;
   loadHistory: () => Promise<HistoryItem[]>;
+  deleteHistory: (id: string) => Promise<void>;
+  deleteHistories: (ids: string[]) => Promise<void>;
+  historyList: HistoryItem[];
 }
 
 const HistoryContext = createContext<HistoryContextType | undefined>(undefined);
 
 export function HistoryProvider({ children }: { children: React.ReactNode }) {
   const [selectedHistory, setSelectedHistory] = useState<HistoryItem | null>(null);
+  const [historyList, setHistoryList] = useState<HistoryItem[]>([]);
 
   useEffect(() => {
-    // 从 localStorage 恢复选中的历史记录
+    loadHistory().then(items => setHistoryList(items));
+  }, []);
+
+  useEffect(() => {
     const savedHistory = localStorage.getItem('selectedHistory');
     if (savedHistory) {
       setSelectedHistory(JSON.parse(savedHistory));
@@ -31,7 +38,6 @@ export function HistoryProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // 将选中的历史记录保存到 localStorage
     if (selectedHistory) {
       localStorage.setItem('selectedHistory', JSON.stringify(selectedHistory));
     } else {
@@ -48,12 +54,38 @@ export function HistoryProvider({ children }: { children: React.ReactNode }) {
       timestamp: Date.now()
     };
     await db.put('history', historyItem);
+    setHistoryList(prev => [historyItem, ...prev]);
   };
 
   const loadHistory = async () => {
     const db = await openDB('mermaid-generator', 1);
     const items = await db.getAll('history');
-    return items.sort((a, b) => b.timestamp - a.timestamp);
+    const sortedItems = items.sort((a, b) => b.timestamp - a.timestamp);
+    setHistoryList(sortedItems);
+    return sortedItems;
+  };
+
+  const deleteHistory = async (id: string) => {
+    const db = await openDB('mermaid-generator', 1);
+    await db.delete('history', id);
+    setHistoryList(prev => prev.filter(item => item.id !== id));
+    if (selectedHistory?.id === id) {
+      setSelectedHistory(null);
+    }
+  };
+
+  const deleteHistories = async (ids: string[]) => {
+    const db = await openDB('mermaid-generator', 1);
+    // 逐个删除记录
+    for (const id of ids) {
+      await db.delete('history', id);
+    }
+    // 更新内存中的状态
+    setHistoryList(prev => prev.filter(item => !ids.includes(item.id)));
+    // 如果当前选中的记录在被删除的列表中，清除选中状态
+    if (selectedHistory && ids.includes(selectedHistory.id)) {
+      setSelectedHistory(null);
+    }
   };
 
   return (
@@ -62,7 +94,10 @@ export function HistoryProvider({ children }: { children: React.ReactNode }) {
         selectedHistory,
         setSelectedHistory,
         addHistory,
-        loadHistory
+        loadHistory,
+        deleteHistory,
+        deleteHistories,
+        historyList
       }}
     >
       {children}

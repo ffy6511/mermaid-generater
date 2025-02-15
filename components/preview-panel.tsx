@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Copy, Edit2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import mermaid from 'mermaid';
 
 interface PreviewPanelProps {
   mermaidCode: string;
@@ -16,6 +17,33 @@ interface PreviewPanelProps {
 export function PreviewPanel({ mermaidCode, onEditCode, isLoading = false }: PreviewPanelProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editableMermaidCode, setEditableMermaidCode] = useState(mermaidCode);
+
+  // 当 mermaidCode 改变时更新 editableMermaidCode
+  useEffect(() => {
+    setEditableMermaidCode(mermaidCode);
+  }, [mermaidCode]);
+
+  // 监听代码变化并重新渲染图表
+  useEffect(() => {
+    const renderMermaidDiagram = async () => {
+      if (!mermaidCode) return;
+
+      try {
+        const container = document.getElementById('mermaid-diagram');
+        if (container) {
+          container.innerHTML = '';
+          const { svg } = await mermaid.render('mermaid-svg', mermaidCode);
+          container.innerHTML = svg;
+        }
+      } catch (error) {
+        console.error('Mermaid rendering error:', error);
+      }
+    };
+
+    if (!isLoading) {
+      renderMermaidDiagram();
+    }
+  }, [mermaidCode, isLoading]);
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(mermaidCode);

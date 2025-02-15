@@ -19,12 +19,13 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [mermaidCode, setMermaidCode] = useState("");
   const { theme, setTheme } = useTheme();
-  const { addHistory, selectedHistory } = useHistory();
+  const { addHistory, selectedHistory, loadHistory } = useHistory();
 
   useEffect(() => {
     if (selectedHistory) {
       setInputText(selectedHistory.content);
       setMermaidCode(selectedHistory.mermaidCode);
+      renderMermaidDiagram();
     }
   }, [selectedHistory]);
 
@@ -81,15 +82,16 @@ export default function Home() {
       }
 
       const data = await response.json();
-      // 处理返回的 mermaid 代码，只移除mermaid标记
+      // 保留代码块标记，但移除mermaid标记
       const processedCode = data.mermaidCode
-        .replace(/^```mermaid\n/, '')  // 移除开头的 ```mermaid
-        .replace(/```$/, '');          // 移除结尾的 ```
+        .replace(/^```mermaid\s*\n/, '')  // 移除开头的 ```mermaid
+        .replace(/\n```$/, '');          // 移除结尾的 ```
       setMermaidCode(processedCode);
 
-
-      // 保存到历史记录
+      // 保存到历史记录并刷新历史列表
       await addHistory(inputText, processedCode);
+      await loadHistory(); // 重新加载历史记录
+      await renderMermaidDiagram(); // 确保在所有状态更新后渲染图表
     } catch (error) {
       console.error("Error:", error);
     } finally {

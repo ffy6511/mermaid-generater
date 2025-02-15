@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: 'system',
-            content: '你是一个专业的图表生成助手。你的任务是将用户输入的文本转换为Mermaid图表代码。\n\n规则：\n1. 根据内容选择最合适的图表类型（流程图、时序图、类图等）\n2. 使用正确的Mermaid语法\n3. 只返回Mermaid代码，不要包含任何解释性文字\n4. 确保生成的代码可以被Mermaid正确渲染\n\n示例输出格式：\ngraph TD\n    A[开始] --> B[处理]\n    B --> C[结束], 注意不要包含mermaid这一行, 因为不需要..'
+            content: '你是一个专业的图表生成助手。你的任务是将用户输入的文本转换为Mermaid图表代码。\n\n规则：\n1. 根据内容选择最合适的图表类型（流程图、时序图、类图等）\n2. 使用正确的Mermaid语法\n3. 只返回Mermaid代码，不要包含任何解释性文字\n4. 确保生成的代码可以被Mermaid正确渲染\n\n示例输出格式：\ngraph TD\n    A[开始] --> B[处理]\n    B --> C[结束], 可以对输入文本进行适量概括或者同义改写.'
           },
           {
             role: 'user',
