@@ -4,14 +4,15 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
-import { Loader2, Save, Sun, Moon } from 'lucide-react';
+import { Loader2, Save, Sun, Moon, PlusCircle } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import mermaid from 'mermaid';
 import { HistoryPanel } from '@/components/history-panel';
 import { PreviewPanel } from '@/components/preview-panel';
 import { openDB } from 'idb';
 import { useHistory } from '@/contexts/history-context';
-import { FileTextTwoTone } from '@ant-design/icons';
+import { FileTextTwoTone, BulbOutlined } from '@ant-design/icons';
+import { Tooltip } from 'antd';
 
 
 
@@ -103,23 +104,47 @@ export default function Home() {
     }
   };
 
+  const handleCreateNew = async () => {
+    const newItem = {
+      id: Date.now().toString(),
+      content: '',
+      mermaidCode: '',
+      timestamp: Date.now()
+    };
+    await addHistory('', '');
+    setSelectedHistory(newItem);
+    setInputText('');
+    setMermaidCode('');
+  };
+
   return (
     <main className="min-h-screen p-4 md:p-8">
       <div className="container mx-auto space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Mermaid Generator</h1>
+          <h1 className="text-2xl font-bold">Mermaid Generator</h1>
           <Button variant="ghost" size="icon" onClick={toggleTheme}>
             <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
             <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           </Button>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-[250px,1fr,1fr]">
+        <div className="grid gap-6 md:grid-cols-[300px,1fr,1fr]">
           <HistoryPanel onSelectHistory={setInputText} />
 
           {/* 输入区域 */}
           <Card className="p-4">
-            <h2 className="text-lg font-semibold mb-4"><FileTextTwoTone />  Texts to be converted</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold"><FileTextTwoTone />  Texts to be converted</h2>
+              <Tooltip title="新建条目">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleCreateNew}
+                >
+                  <PlusCircle className="h-4 w-4" />
+                </Button>
+              </Tooltip>
+            </div>
             <Textarea
               placeholder="请输入要转换为图表的文本..."
               className="min-h-[300px] mb-4"
@@ -138,8 +163,7 @@ export default function Home() {
                 </>
               ) : (
                 <>
-                  <Save className="mr-2 h-4 w-4" />
-                  生成图表
+                  <BulbOutlined />   生成图表
                 </>
               )}
             </Button>
