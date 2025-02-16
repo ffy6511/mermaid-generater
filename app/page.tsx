@@ -19,7 +19,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [mermaidCode, setMermaidCode] = useState("");
   const { theme, setTheme } = useTheme();
-  const { addHistory, selectedHistory, loadHistory } = useHistory();
+  const { addHistory, selectedHistory, setSelectedHistory, loadHistory } = useHistory();
 
   useEffect(() => {
     if (selectedHistory) {
@@ -58,8 +58,6 @@ export default function Home() {
     }
   };
 
-
-
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
   };
@@ -88,9 +86,15 @@ export default function Home() {
         .replace(/\n```$/, '');          // 移除结尾的 ```
       setMermaidCode(processedCode);
 
-      // 保存到历史记录并刷新历史列表
+      // 保存到历史记录并设置为当前选中项
+      const historyItem = {
+        id: Date.now().toString(),
+        content: inputText,
+        mermaidCode: processedCode,
+        timestamp: Date.now()
+      };
       await addHistory(inputText, processedCode);
-      await loadHistory(); // 重新加载历史记录
+      setSelectedHistory(historyItem); // 设置为当前选中项
       await renderMermaidDiagram(); // 确保在所有状态更新后渲染图表
     } catch (error) {
       console.error("Error:", error);
