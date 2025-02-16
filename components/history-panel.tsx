@@ -7,6 +7,7 @@ import { useHistory } from '@/contexts/history-context';
 import type { HistoryItem } from '@/contexts/history-context';
 import { Tooltip } from 'antd';
 import { Button } from './ui/button';
+import { FieldTimeOutlined } from '@ant-design/icons';
 
 interface HistoryPanelProps {
   onSelectHistory: (content: string, mermaidCode: string) => void;
@@ -79,7 +80,7 @@ export function HistoryPanel({ onSelectHistory }: HistoryPanelProps) {
           className="flex items-center cursor-pointer"
           onClick={() => setIsOpen(!isOpen)}
         >
-          <h2 className="text-xl font-semibold">历史记录</h2>
+          <p className="text-lg font-semibold"><FieldTimeOutlined /> Recent</p>
           {isOpen ? (
             <ChevronDown className="h-5 w-5 ml-2" />
           ) : (

@@ -11,6 +11,7 @@ import { HistoryPanel } from '@/components/history-panel';
 import { PreviewPanel } from '@/components/preview-panel';
 import { openDB } from 'idb';
 import { useHistory } from '@/contexts/history-context';
+import { FileTextTwoTone } from '@ant-design/icons';
 
 
 
@@ -25,7 +26,6 @@ export default function Home() {
     if (selectedHistory) {
       setInputText(selectedHistory.content);
       setMermaidCode(selectedHistory.mermaidCode);
-      renderMermaidDiagram();
     }
   }, [selectedHistory]);
 
@@ -107,7 +107,7 @@ export default function Home() {
     <main className="min-h-screen p-4 md:p-8">
       <div className="container mx-auto space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Mermaid 图表生成器</h1>
+          <h1 className="text-3xl font-bold">Mermaid Generator</h1>
           <Button variant="ghost" size="icon" onClick={toggleTheme}>
             <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
             <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
@@ -119,7 +119,7 @@ export default function Home() {
 
           {/* 输入区域 */}
           <Card className="p-4">
-            <h2 className="text-xl font-semibold mb-4">输入文本</h2>
+            <h2 className="text-lg font-semibold mb-4"><FileTextTwoTone />  Texts to be converted</h2>
             <Textarea
               placeholder="请输入要转换为图表的文本..."
               className="min-h-[300px] mb-4"
@@ -146,8 +146,6 @@ export default function Home() {
           </Card>
 
           <PreviewPanel
-            mermaidCode={mermaidCode}
-            onEditCode={setMermaidCode}
             isLoading={isLoading}
           />
         </div>
