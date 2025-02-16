@@ -1,5 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// 配置 CORS 头部的函数
+function corsHeaders(request: NextRequest) {
+  const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
+  const origin = request.headers.get('origin');
+  
+  // 检查请求的源是否在允许列表中
+  const allowedOrigin = origin && allowedOrigins.includes(origin) ? origin : null;
+
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin || 'null',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Max-Age': '86400',
+  };
+}
+
+// 处理 OPTIONS 请求（预检请求）
+export async function OPTIONS(request: NextRequest) {
+  return NextResponse.json({}, { headers: corsHeaders(request) });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { text } = await request.json();
@@ -7,7 +29,7 @@ export async function POST(request: NextRequest) {
     if (!text) {
       return NextResponse.json(
         { error: 'Text input is required' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders(request) }
       );
     }
 
@@ -16,7 +38,7 @@ export async function POST(request: NextRequest) {
     if (!apiKey) {
       return NextResponse.json(
         { error: 'ZChat API key not configured' },
-        { status: 500 }
+        { status: 500, headers: corsHeaders(request) }
       );
     }
 
@@ -49,20 +71,23 @@ export async function POST(request: NextRequest) {
       const error = await response.text();
       return NextResponse.json(
         { error: `DeepSeek API error: ${error}` },
-        { status: response.status }
+        { status: response.status, headers: corsHeaders(request) }
       );
     }
 
     const data = await response.json();
     const mermaidCode = data.choices[0].message.content;
 
-    return NextResponse.json({ mermaidCode });
+    return NextResponse.json(
+      { mermaidCode }, 
+      { headers: corsHeaders(request) }
+    );
 
   } catch (error) {
     console.error('API error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders(request) }
     );
   }
 }
