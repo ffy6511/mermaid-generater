@@ -33,16 +33,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const apiKey = process.env.ZCHAT_API_KEY;
+    const apiKey = process.env.DEEPSEEK_API_KEY;
 
     if (!apiKey) {
       return NextResponse.json(
-        { error: 'ZChat API key not configured' },
+        { error: 'DeepSeek API key not configured' },
         { status: 500, headers: corsHeaders(request) }
       );
     }
 
-    const apiUrl = 'https://api.zchat.tech/v1/chat/completions';
+    const apiUrl = 'https://api.deepseek.com/v1/chat/completions';
 
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -51,11 +51,12 @@ export async function POST(request: NextRequest) {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
+        model: 'deepseek-chat',
         messages: [
           {
             role: 'system',
-            content: '你是一个专业的图表生成助手。你的任务是将用户输入的文本转换为Mermaid图表代码。\n\n规则：\n1. 根据内容选择最合适的图表类型（流程图、时序图、类图等）\n2. 使用正确的Mermaid语法\n3. 只返回Mermaid代码，不要包含任何解释性文字\n4. 确保生成的代码可以被Mermaid正确渲染\n\n示例输出格式：\ngraph TD\n    A[开始] --> B[处理]\n    B --> C[结束], 可以对输入文本进行适量概括或者同义改写.'
+            content:
+            '你是一个专业的图表生成助手。你的任务是将用户输入的文本转换为Mermaid图表代码, 注意不是解释! 而是“翻译”。\n\n规则：\n1. 根据内容智能选择最合适的图表类型（流程图、时序图、类图、甘特图、饼图等）\n2. 严格使用正确的Mermaid语法，确保代码可执行\n3. 仅返回Mermaid代码块，不包含任何解释、注释或额外文字\n4. 确保生成的图表结构清晰、层次分明\n5. 对复杂内容进行适当简化，保持图表可读性\n6. 保持用户输入的核心含义，可以适量概括或同义改写，但不改变原意\n\n输出格式示例：\ngraph TD\n    A[开始] --> B[处理]\n    B --> C[结束]\n\n注意：不要在代码前后添加任何说明文字，直接返回可执行的Mermaid代码。'
           },
           {
             role: 'user',
@@ -68,11 +69,19 @@ export async function POST(request: NextRequest) {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      return NextResponse.json(
-        { error: `DeepSeek API error: ${error}` },
-        { status: response.status, headers: corsHeaders(request) }
-      );
+      try {
+        const errorData = await response.json();
+        return NextResponse.json(
+          { error: `DeepSeek API error: ${JSON.stringify(errorData)}` },
+          { status: response.status, headers: corsHeaders(request) }
+        );
+      } catch {
+        const error = await response.text();
+        return NextResponse.json(
+          { error: `DeepSeek API error: ${error}` },
+          { status: response.status, headers: corsHeaders(request) }
+        );
+      }
     }
 
     const data = await response.json();

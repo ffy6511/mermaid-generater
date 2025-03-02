@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CodeTwoTone, PieChartTwoTone  }  from '@ant-design/icons';
+import { CodeTwoTone, PieChartTwoTone, ZoomInOutlined, ZoomOutOutlined }  from '@ant-design/icons';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
@@ -18,6 +18,7 @@ interface PreviewPanelProps {
 export function PreviewPanel({ isLoading = false }: PreviewPanelProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editableMermaidCode, setEditableMermaidCode] = useState('');
+  const [scale, setScale] = useState(1);
   const { selectedHistory, setSelectedHistory } = useHistory();
 
   // 初始化时从 localStorage 读取 selectedHistory
@@ -33,7 +34,7 @@ export function PreviewPanel({ isLoading = false }: PreviewPanelProps) {
 
   // 初始化 mermaid 并监听主题变化
   useEffect(() => {
-    const initMermaid = (theme: string) => {
+    const initMermaid = (theme: 'dark' | "default") => {
       mermaid.initialize({
         startOnLoad: true,
         theme: theme,
@@ -127,6 +128,14 @@ export function PreviewPanel({ isLoading = false }: PreviewPanelProps) {
     }
   };
 
+  const handleZoomIn = () => {
+    setScale(prev => Math.min(prev + 0.2, 2));
+  };
+
+  const handleZoomOut = () => {
+    setScale(prev => Math.max(prev - 0.2, 0.5));
+  };
+
   return (
     <Card className="p-4">
       <h2 className="text-lg font-semibold mb-4"><CodeTwoTone />  Mermaid code</h2>
@@ -159,23 +168,53 @@ export function PreviewPanel({ isLoading = false }: PreviewPanelProps) {
             <Textarea
               value={editableMermaidCode}
               onChange={(e) => setEditableMermaidCode(e.target.value)}
-              className="min-h-[200px] font-mono text-sm"
+              className="h-[300px] font-mono text-sm overflow-auto resize-none"
             />
           ) : (
-            <pre className="min-h-[200px] p-4 bg-muted font-mono text-sm rounded-md overflow-auto">
+            <pre className="h-[300px] p-4 bg-muted font-mono text-sm rounded-md overflow-auto">
               {selectedHistory?.mermaidCode || "暂无图表代码"}
             </pre>
           )}
         </div>
-        <h2 className="text-lg font-semibold mb-4"><PieChartTwoTone  />  Rendered chart</h2>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-lg font-semibold"><PieChartTwoTone />  Rendered chart</h2>
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleZoomOut}
+              disabled={scale <= 0.3}
+            >
+              <ZoomOutOutlined className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleZoomIn}
+              disabled={scale >= 5}
+            >
+              <ZoomInOutlined className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
         <div className="min-h-[300px] border rounded-md p-4 overflow-auto relative">
           {isLoading ? (
             <div className="absolute inset-0 flex items-center justify-center bg-background/80">
               <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
             </div>
           ) : selectedHistory?.mermaidCode ? (
-            <div id="mermaid-diagram" className="flex justify-center">
-              {/* Mermaid图表将在这里渲染 */}
+            <div className="flex justify-center">
+              <div
+                id="mermaid-diagram"
+                className="h-[400px] overflow-visible"
+                style={{
+                  transform: `scale(${scale})`,
+                  transformOrigin: 'center top',
+                  transition: 'transform 0.2s ease-in-out'
+                }}
+              >
+                {/* Mermaid图表将在这里渲染 */}
+              </div>
             </div>
           ) : (
             <p className="text-muted-foreground text-center">图表渲染区域</p>

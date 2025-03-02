@@ -121,7 +121,7 @@ export default function Home() {
     <main className="min-h-screen p-4 md:p-8">
       <div className="container mx-auto space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Mermaid Generator</h1>
+          <p className="text-2xl font-bold">Mermaid Generator</p>
           <Button variant="ghost" size="icon" onClick={toggleTheme}>
             <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
             <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
